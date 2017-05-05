@@ -23,6 +23,7 @@ class triangle : public sandbox
 
         glUseProgram( program ) ;
 
+        glBindVertexArray( vao ) ;
         glDrawArrays( GL_TRIANGLES, 0, 3 ) ;
     }
 
