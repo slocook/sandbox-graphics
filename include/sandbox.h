@@ -3,8 +3,12 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/vec3.hpp>
+
 #include <stdexcept>
 #include <string>
+
+#include "text_writer.h"
 
 class sandbox
 {
@@ -49,15 +53,29 @@ public:
 
         glViewport( 0, 0, width, height ) ;
 
+        text_writer = new TextWriter() ;
+        text_writer -> setProgram( 
+                loadShaders( (text_writer -> vs_fname).c_str(), (text_writer -> fs_fname).c_str() ) ) ;
+        
+        glClearColor( 0.0f, 0.0f, 0.0f, 1.0f ) ;
+
         init() ;
 
         while( !glfwWindowShouldClose( window ) )
         {
             glfwPollEvents() ;
 
-            render( glfwGetTime() ) ;
+            glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
 
-            renderMenu() ;
+            double start_time = glfwGetTime() ;
+
+            render( start_time ) ;
+
+            if( menu_active )
+                renderMenu() ;
+
+            if( show_framerate )
+                renderFramerate() ;
 
             glfwSwapBuffers( window ) ;
         }
@@ -67,7 +85,29 @@ public:
 
     void renderMenu()
     {
-        if( !menu_active ) return ;
+        
+    }
+
+    void renderFramerate()
+    {
+        static int frames = 0 ;
+        static double last_time = 0.0 ;
+        static char buffer[32] ;
+        
+        frames++;
+
+        double now = glfwGetTime() ;
+
+        if( now - last_time >= 1.0 )
+        {
+            memset( buffer, 0, 32 ) ;
+            snprintf( buffer, 32, "%.2f ms", 1000.0/frames ) ;
+
+            last_time += 1.0 ;
+            frames = 0 ;
+        }
+
+        text_writer -> write( buffer, 20.0f, 570.0f, 0.4f, glm::vec3( 1.0 ) ) ;
     }
 
     const GLchar *readFile( const char *fname )
@@ -92,7 +132,7 @@ public:
     }
 
     virtual GLuint loadShaders( const char *vs_fname,
-                              const char *fs_fname )
+                                const char *fs_fname )
     {
         // Read vertex and fragment shader sources
         const GLchar *vs_source = readFile( vs_fname ) ;
@@ -149,6 +189,10 @@ public:
                     glfwSetWindowShouldClose( window, GL_TRUE ) ;
                     break ;
 
+                case GLFW_KEY_F :
+                    show_framerate = !show_framerate ;
+                    break ;
+
                 case GLFW_KEY_TAB :
                     menu_active = !menu_active ;
                     break ;
@@ -165,11 +209,15 @@ protected:
 
     GLFWwindow *window ;
 
+    TextWriter *text_writer ;
+
     int width ;
     int height ;
 
     GLuint program ;
+    GLuint text_program ;
 
+    bool show_framerate ;
     bool menu_active ;
 } ;
 
