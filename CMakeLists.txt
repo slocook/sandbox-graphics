@@ -32,9 +32,14 @@ SET( CURR_PATH ${CMAKE_SOURCE_DIR}/src/text_writer )
 CONFIGURE_FILE( src/text_writer/text_writer.cpp 
                 ${CMAKE_BINARY_DIR}/src/text_writer.cpp )
 
+SET( CURR_PATH ${CMAKE_SOURCE_DIR}/src/menu )
+CONFIGURE_FILE( src/menu/menu.cpp 
+                ${CMAKE_BINARY_DIR}/src/menu.cpp )
+
 ADD_LIBRARY( sandbox
              src/sandbox.cpp
-             ${CMAKE_BINARY_DIR}/src/text_writer.cpp )
+             ${CMAKE_BINARY_DIR}/src/text_writer.cpp
+             ${CMAKE_BINARY_DIR}/src/menu.cpp )
 
 SET( EXAMPLES
      triangle )

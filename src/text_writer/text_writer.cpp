@@ -2,15 +2,17 @@
 
 #include <GL/glew.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
 #include <utility>
+
+#define WIDTH 800
+#define HEIGHT 600
 
 TextWriter::TextWriter()
 {
     loadCharacters() ;
+
+    window_width  = WIDTH ;
+    window_height = HEIGHT ;
 
     vs_fname = "@CURR_PATH@/shaders/text-vert.glsl" ;
     fs_fname = "@CURR_PATH@/shaders/text-frag.glsl" ;
@@ -97,7 +99,11 @@ void TextWriter::write( const char *text, GLfloat x, GLfloat y, GLfloat scale, g
 {
     if( text == nullptr ) return ;
 
-    static glm::mat4 projection = glm::ortho( 0.0f, 800.0f, 0.0f, 600.0f ) ;
+    static glm::mat4 projection = glm::ortho( 0.0f, (float)window_width, 0.0f, (float)window_height ) ;
+
+    GLint poly_mode ;
+    glGetIntegerv( GL_POLYGON_MODE, &poly_mode ) ;
+    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) ;
 
     glEnable( GL_BLEND ) ;
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ) ;
@@ -157,4 +163,6 @@ void TextWriter::write( const char *text, GLfloat x, GLfloat y, GLfloat scale, g
 
         x += (tc.advance >> 6) * scale ;
     }
+
+    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL ) ;
 }

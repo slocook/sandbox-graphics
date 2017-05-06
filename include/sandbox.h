@@ -3,12 +3,13 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <glm/vec3.hpp>
 
 #include <stdexcept>
 #include <string>
 
 #include "text_writer.h"
+#include "menu.h"
+#include "sb_math.h"
 
 class sandbox
 {
@@ -23,6 +24,7 @@ public:
     {
         app = _app ;
         menu_active = false ;
+        v_sync = true ;
 
         if( !glfwInit() )
         {
@@ -42,6 +44,8 @@ public:
         glfwMakeContextCurrent( window ) ;
 
         glfwSetKeyCallback( window, keyCallback ) ;
+        glfwSetCursorPosCallback( window, cursorPosCallback ) ;
+        glfwSetMouseButtonCallback( window, mouseButtonCallback ) ;
 
         glewExperimental = GL_TRUE ;
         if( glewInit() != GLEW_OK )
@@ -53,9 +57,18 @@ public:
 
         glViewport( 0, 0, width, height ) ;
 
-        text_writer = new TextWriter() ;
+        text_writer = TextWriter::getInstance() ;
         text_writer -> setProgram( 
-                loadShaders( (text_writer -> vs_fname).c_str(), (text_writer -> fs_fname).c_str() ) ) ;
+                loadShaders( (text_writer -> vs_fname).c_str(), 
+                             (text_writer -> fs_fname).c_str() ) ) ;
+
+        menu = new Menu() ;
+        menu -> setProgram(
+                loadShaders( (menu -> vs_fname).c_str(), 
+                             (menu -> fs_fname).c_str() ) ) ;
+
+        enable_wireframe = false ;
+        menu -> addItem( "Wireframe", toggleWireframe, TOGGLE ) ;
         
         glClearColor( 0.0f, 0.0f, 0.0f, 1.0f ) ;
 
@@ -66,13 +79,14 @@ public:
             glfwPollEvents() ;
 
             glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
+            glPolygonMode( GL_FRONT_AND_BACK, enable_wireframe ? GL_LINE : GL_FILL ) ;
 
             double start_time = glfwGetTime() ;
 
             render( start_time ) ;
 
             if( menu_active )
-                renderMenu() ;
+                menu -> render() ;
 
             if( show_framerate )
                 renderFramerate() ;
@@ -81,11 +95,6 @@ public:
         }
 
         cleanup() ;
-    }
-
-    void renderMenu()
-    {
-        
     }
 
     void renderFramerate()
@@ -98,6 +107,13 @@ public:
 
         double now = glfwGetTime() ;
 
+        if( now - last_time > 2.0 )
+        {
+            // Assume this is the first time
+            frames = 0 ;
+            last_time = now ;
+        }
+
         if( now - last_time >= 1.0 )
         {
             memset( buffer, 0, 32 ) ;
@@ -108,6 +124,12 @@ public:
         }
 
         text_writer -> write( buffer, 20.0f, 570.0f, 0.4f, glm::vec3( 1.0 ) ) ;
+    }
+
+    static void toggleWireframe() 
+    {
+        if( app )
+            app -> enable_wireframe = !app -> enable_wireframe ;
     }
 
     const GLchar *readFile( const char *fname )
@@ -170,7 +192,6 @@ public:
     virtual void init() {}
     virtual void render( double time ) {}
     virtual void cleanup() {}
-    virtual void menu() {}
     virtual void handleInput( GLFWwindow *window, int key, int scancode, int action, int mode ) {}
 
     static void keyCallback( GLFWwindow *window, int key, int scancode, int action, int mode )
@@ -179,22 +200,43 @@ public:
             app -> handleInputMain( window, key, scancode, action, mode ) ;
     }
 
+    static void cursorPosCallback( GLFWwindow *window, double xpos, double ypos ) 
+    {
+        if( app )
+            app -> handleCursorPosMain( window, xpos, ypos ) ;
+    }
+
+    static void mouseButtonCallback( GLFWwindow *window, int button, int action, int mods )
+    {
+        if( app )
+            app -> handleMouseButtonMain( window, button, action, mods ) ;
+    }
+
     void handleInputMain( GLFWwindow *window, int key, int scancode, int action, int mode )
     {
         if( action == GLFW_PRESS )
         {
             switch( key )
             {
+                // Close window
                 case GLFW_KEY_ESCAPE :
                     glfwSetWindowShouldClose( window, GL_TRUE ) ;
                     break ;
 
+                // Toggle menu
+                case GLFW_KEY_TAB :
+                    menu_active = !menu_active ;
+                    break ;
+
+                // Toggle framerate
                 case GLFW_KEY_F :
                     show_framerate = !show_framerate ;
                     break ;
 
-                case GLFW_KEY_TAB :
-                    menu_active = !menu_active ;
+                // Toggle vsync
+                case GLFW_KEY_V :
+                    v_sync = !v_sync ;
+                    glfwSwapInterval( v_sync ? 1 : 0 ) ;
                     break ;
 
                 default :
@@ -204,21 +246,48 @@ public:
         }
     }
 
+    void handleCursorPosMain( GLFWwindow *window, double xpos, double ypos )
+    {
+        cursor_pos[0] = xpos ;
+        cursor_pos[1] = ypos ;
+    }
+
+    void handleMouseButtonMain( GLFWwindow *window, int button, int action, int mods )
+    {
+        if( button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS )
+        {
+            if( menu_active )
+            {
+                menu -> click( cursor_pos[0], cursor_pos[1] ) ;
+            }
+            else
+            {
+                // Do something
+            }
+        }
+
+    }
+
 protected:
     static sandbox *app ;
+
+    GLuint program ;
 
     GLFWwindow *window ;
 
     TextWriter *text_writer ;
 
+    Menu *menu ;
+
     int width ;
     int height ;
 
-    GLuint program ;
-    GLuint text_program ;
+    double cursor_pos[2] ;
 
     bool show_framerate ;
     bool menu_active ;
+    bool enable_wireframe ;
+    bool v_sync ;
 } ;
 
 #define MAIN(a,name)                    \

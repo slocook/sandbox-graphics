@@ -7,7 +7,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-#include <glm/vec3.hpp>
+#include "sb_math.h"
 
 #include <map>
 #include <string>
@@ -29,11 +29,21 @@ public:
     TextWriter() ;
     ~TextWriter() ;
 
+    static TextWriter *getInstance() 
+    {
+        static TextWriter *instance = new TextWriter() ;
+
+        return instance ;
+    }
+
     void setProgram( GLuint _program ) { program = _program ; }
 
     void write( const char *text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color ) ;
 private:
     std::map<GLchar, TextChar> text_chars ;
+
+    int window_width ;
+    int window_height ;
 
     GLuint vao ;
     GLuint vbo ;
