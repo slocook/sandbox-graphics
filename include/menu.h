@@ -6,6 +6,7 @@
 
 #include <string>
 #include <vector>
+#include <list>
 
 enum MenuItemType
 {
@@ -25,9 +26,6 @@ struct MenuItem
 class Menu
 {
 public:
-    std::string vs_fname ;
-    std::string fs_fname ;
-
     Menu() ;
     ~Menu() ;
 
@@ -39,6 +37,15 @@ public:
 
     void setProgram( GLuint _program ) { program = _program ; }
 
+    std::list<std::pair<const char*,GLuint>> getShaders()
+    {
+        std::list<std::pair<const char*,GLuint>> shaders ;
+        shaders.push_back( std::make_pair( vs_fname.c_str(), GL_VERTEX_SHADER ) ) ;
+        shaders.push_back( std::make_pair( fs_fname.c_str(), GL_FRAGMENT_SHADER ) ) ;
+
+        return shaders ;
+    }
+
 private:
     std::vector<MenuItem> item_list ;
 
@@ -46,6 +53,9 @@ private:
 
     GLuint vao ;
     GLuint vbo ;
+
+    std::string vs_fname ;
+    std::string fs_fname ;
 } ;
 
 #endif

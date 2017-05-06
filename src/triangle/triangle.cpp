@@ -10,7 +10,11 @@ class triangle : public sandbox
         const GLchar *vs_fname = "@CURR_PATH@/shaders/vert-shader.glsl" ;
         const GLchar *fs_fname = "@CURR_PATH@/shaders/frag-shader.glsl" ;
 
-        program = loadShaders( vs_fname, fs_fname ) ;
+        std::list<std::pair<const char *, GLuint>> shaders ;
+        shaders.push_back( std::make_pair( vs_fname, GL_VERTEX_SHADER ) ) ;
+        shaders.push_back( std::make_pair( fs_fname, GL_FRAGMENT_SHADER ) ) ;
+
+        program = loadShaders( shaders ) ;
 
         glGenVertexArrays( 1, &vao ) ;
         glBindVertexArray( vao ) ;

@@ -6,6 +6,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <list>
 
 #include "text_writer.h"
 #include "menu.h"
@@ -58,14 +59,10 @@ public:
         glViewport( 0, 0, width, height ) ;
 
         text_writer = TextWriter::getInstance() ;
-        text_writer -> setProgram( 
-                loadShaders( (text_writer -> vs_fname).c_str(), 
-                             (text_writer -> fs_fname).c_str() ) ) ;
+        text_writer -> setProgram( loadShaders( text_writer -> getShaders() ) ) ;
 
         menu = new Menu() ;
-        menu -> setProgram(
-                loadShaders( (menu -> vs_fname).c_str(), 
-                             (menu -> fs_fname).c_str() ) ) ;
+        menu -> setProgram( loadShaders( menu -> getShaders() ) ) ;
 
         enable_wireframe = false ;
         menu -> addItem( "Wireframe", toggleWireframe, TOGGLE ) ;
@@ -153,41 +150,68 @@ public:
         return const_cast<const GLchar*>(data) ;
     }
 
-    virtual GLuint loadShaders( const char *vs_fname,
-                                const char *fs_fname )
+    virtual GLuint loadShaders( std::list<std::pair<const char*,GLuint>> shader_list )
     {
-        // Read vertex and fragment shader sources
-        const GLchar *vs_source = readFile( vs_fname ) ;
-        const GLchar *fs_source = readFile( fs_fname ) ;
-
-        if( vs_source == NULL || fs_source == NULL )
-        {
-            throw std::runtime_error("Empty shader?!?") ;
-        }
-
-        // Create the vertex shader
-        GLuint vs = glCreateShader( GL_VERTEX_SHADER ) ;
-        glShaderSource( vs, 1, &vs_source, NULL ) ;
-        glCompileShader( vs ) ;
-
-        // Create the fragment shader
-        GLuint fs = glCreateShader( GL_FRAGMENT_SHADER ) ;
-        glShaderSource( fs, 1, &fs_source, NULL ) ;
-        glCompileShader( fs ) ;
-
-        // Create the program
         GLuint program = glCreateProgram() ;
 
-        glAttachShader( program, vs ) ;
-        glAttachShader( program, fs ) ;
+        for( auto shader : shader_list )
+        {
+            const GLchar *source = readFile( shader.first ) ;
+
+            if( source == NULL )
+            {
+                throw std::runtime_error( "Empty shader?!?" ) ;
+            }
+
+            GLuint s = glCreateShader( shader.second ) ;
+            glShaderSource( s, 1, &source, NULL ) ;
+            glCompileShader( s ) ;
+
+            glAttachShader( program, s ) ;
+
+            delete[] source ;
+        }
 
         glLinkProgram( program ) ;
 
-        delete[] vs_source ;
-        delete[] fs_source ;
-
         return program ;
     }
+
+    //virtual GLuint loadShaders( const char *vs_fname,
+    //                            const char *fs_fname )
+    //{
+    //    // Read vertex and fragment shader sources
+    //    const GLchar *vs_source = readFile( vs_fname ) ;
+    //    const GLchar *fs_source = readFile( fs_fname ) ;
+
+    //    if( vs_source == NULL || fs_source == NULL )
+    //    {
+    //        throw std::runtime_error("Empty shader?!?") ;
+    //    }
+
+    //    // Create the vertex shader
+    //    GLuint vs = glCreateShader( GL_VERTEX_SHADER ) ;
+    //    glShaderSource( vs, 1, &vs_source, NULL ) ;
+    //    glCompileShader( vs ) ;
+
+    //    // Create the fragment shader
+    //    GLuint fs = glCreateShader( GL_FRAGMENT_SHADER ) ;
+    //    glShaderSource( fs, 1, &fs_source, NULL ) ;
+    //    glCompileShader( fs ) ;
+
+    //    // Create the program
+    //    GLuint program = glCreateProgram() ;
+
+    //    glAttachShader( program, vs ) ;
+    //    glAttachShader( program, fs ) ;
+
+    //    glLinkProgram( program ) ;
+
+    //    delete[] vs_source ;
+    //    delete[] fs_source ;
+
+    //    return program ;
+    //}
 
     virtual void init() {}
     virtual void render( double time ) {}

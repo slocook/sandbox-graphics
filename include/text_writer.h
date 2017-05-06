@@ -11,6 +11,7 @@
 
 #include <map>
 #include <string>
+#include <list>
 
 struct TextChar
 {
@@ -23,9 +24,6 @@ struct TextChar
 class TextWriter
 {
 public:
-    std::string vs_fname ;
-    std::string fs_fname ;
-
     TextWriter() ;
     ~TextWriter() ;
 
@@ -39,7 +37,19 @@ public:
     void setProgram( GLuint _program ) { program = _program ; }
 
     void write( const char *text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color ) ;
+
+    std::list<std::pair<const char*,GLuint>> getShaders()
+    {
+        std::list<std::pair<const char*,GLuint>> shaders ;
+        shaders.push_back( std::make_pair( vs_fname.c_str(), GL_VERTEX_SHADER ) ) ;
+        shaders.push_back( std::make_pair( fs_fname.c_str(), GL_FRAGMENT_SHADER ) ) ;
+
+        return shaders ;
+    }
 private:
+    std::string vs_fname ;
+    std::string fs_fname ;
+
     std::map<GLchar, TextChar> text_chars ;
 
     int window_width ;
