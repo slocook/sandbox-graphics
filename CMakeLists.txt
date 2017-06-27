@@ -42,7 +42,9 @@ ADD_LIBRARY( sandbox
              ${CMAKE_BINARY_DIR}/src/menu.cpp )
 
 SET( EXAMPLES
-     triangle )
+     triangle
+     cube
+     perlin_noise )
 
 FOREACH( EXAMPLE ${EXAMPLES} )
     SET( CURR_DIR src/${EXAMPLE} )

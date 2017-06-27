@@ -10,6 +10,7 @@
 
 #include "text_writer.h"
 #include "menu.h"
+#include "camera.h"
 #include "sb_math.h"
 
 class sandbox
@@ -24,9 +25,9 @@ public:
     virtual void run( sandbox *_app, const char *name )
     {
         app = _app ;
-        menu_active = false ;
         v_sync = true ;
 
+        // Initialize GLFW
         if( !glfwInit() )
         {
             throw std::runtime_error("Failed to initialize GLFW!") ;
@@ -48,6 +49,8 @@ public:
         glfwSetCursorPosCallback( window, cursorPosCallback ) ;
         glfwSetMouseButtonCallback( window, mouseButtonCallback ) ;
 
+        glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED ) ;
+        // Initialize GLEW
         glewExperimental = GL_TRUE ;
         if( glewInit() != GLEW_OK )
         {
@@ -58,27 +61,46 @@ public:
 
         glViewport( 0, 0, width, height ) ;
 
+        cursor_pos[0] = width ;
+        cursor_pos[1] = height ;
+
+        // Initialize text renderer
         text_writer = TextWriter::getInstance() ;
         text_writer -> setProgram( loadShaders( text_writer -> getShaders() ) ) ;
 
+        // Initialize menu
+        menu_active = false ;
+        enable_wireframe = false ;
         menu = new Menu() ;
         menu -> setProgram( loadShaders( menu -> getShaders() ) ) ;
-
-        enable_wireframe = false ;
         menu -> addItem( "Wireframe", toggleWireframe, TOGGLE ) ;
         
+        // Initialize matrices
+        camera            = new Camera() ;
+
+        model_matrix      = glm::mat4(1.0) ;
+        view_matrix       = camera -> view_matrix ;
+        projection_matrix = glm::mat4(1.0) ;
+        mvp_matrix        = projection_matrix * view_matrix * model_matrix ;
+
         glClearColor( 0.0f, 0.0f, 0.0f, 1.0f ) ;
 
+        // App specific initialization
         init() ;
 
+        // Main loop
         while( !glfwWindowShouldClose( window ) )
         {
+            cursor_delta[0] = 0.0 ;
+            cursor_delta[1] = 0.0 ;
             glfwPollEvents() ;
 
             glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
             glPolygonMode( GL_FRONT_AND_BACK, enable_wireframe ? GL_LINE : GL_FILL ) ;
 
             double start_time = glfwGetTime() ;
+
+            update_camera( start_time ) ;
 
             render( start_time ) ;
 
@@ -177,42 +199,6 @@ public:
         return program ;
     }
 
-    //virtual GLuint loadShaders( const char *vs_fname,
-    //                            const char *fs_fname )
-    //{
-    //    // Read vertex and fragment shader sources
-    //    const GLchar *vs_source = readFile( vs_fname ) ;
-    //    const GLchar *fs_source = readFile( fs_fname ) ;
-
-    //    if( vs_source == NULL || fs_source == NULL )
-    //    {
-    //        throw std::runtime_error("Empty shader?!?") ;
-    //    }
-
-    //    // Create the vertex shader
-    //    GLuint vs = glCreateShader( GL_VERTEX_SHADER ) ;
-    //    glShaderSource( vs, 1, &vs_source, NULL ) ;
-    //    glCompileShader( vs ) ;
-
-    //    // Create the fragment shader
-    //    GLuint fs = glCreateShader( GL_FRAGMENT_SHADER ) ;
-    //    glShaderSource( fs, 1, &fs_source, NULL ) ;
-    //    glCompileShader( fs ) ;
-
-    //    // Create the program
-    //    GLuint program = glCreateProgram() ;
-
-    //    glAttachShader( program, vs ) ;
-    //    glAttachShader( program, fs ) ;
-
-    //    glLinkProgram( program ) ;
-
-    //    delete[] vs_source ;
-    //    delete[] fs_source ;
-
-    //    return program ;
-    //}
-
     virtual void init() {}
     virtual void render( double time ) {}
     virtual void cleanup() {}
@@ -250,11 +236,27 @@ public:
                 // Toggle menu
                 case GLFW_KEY_TAB :
                     menu_active = !menu_active ;
+                    if( menu_active )
+                        glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL ) ;
+                    else
+                        glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED ) ;
+                    break ;
+
+                // Reserved
+                case GLFW_KEY_A :
+                    break ;
+
+                // Reserved
+                case GLFW_KEY_D :
                     break ;
 
                 // Toggle framerate
                 case GLFW_KEY_F :
                     show_framerate = !show_framerate ;
+                    break ;
+
+                // Reserved
+                case GLFW_KEY_S :
                     break ;
 
                 // Toggle vsync
@@ -263,15 +265,27 @@ public:
                     glfwSwapInterval( v_sync ? 1 : 0 ) ;
                     break ;
 
+                // Reserved
+                case GLFW_KEY_W :
+                    break ;
+
                 default :
                     handleInput( window, key, scancode, action, mode ) ;
                     break ;
             }
         }
+
+        if( action == GLFW_PRESS )
+            keys[key] = true ;
+        else if( action == GLFW_RELEASE )
+            keys[key] = false ;
     }
 
     void handleCursorPosMain( GLFWwindow *window, double xpos, double ypos )
     {
+        cursor_delta[0] = xpos - cursor_pos[0] ;
+        cursor_delta[1] = ypos - cursor_pos[1] ;
+
         cursor_pos[0] = xpos ;
         cursor_pos[1] = ypos ;
     }
@@ -292,26 +306,60 @@ public:
 
     }
 
+    void update_camera( double time )
+    {
+        glm::vec3 dir = glm::vec3( 0.0 ) ;
+
+        if( !menu_active )
+        {
+            if( keys[ GLFW_KEY_W ] )
+                dir += glm::vec3( 0.0, 0.0, 1.0 ) ;
+            if( keys[ GLFW_KEY_A ] )
+                dir += glm::vec3( -1.0, 0.0, 0.0 ) ;
+            if( keys[ GLFW_KEY_S ] )
+                dir += glm::vec3( 0.0, 0.0, -1.0 ) ;
+            if( keys[ GLFW_KEY_D ] )
+                dir += glm::vec3( 1.0, 0.0, 0.0 ) ;
+
+            camera -> setOffset( cursor_delta[0], cursor_delta[1] ) ;
+        }
+
+        camera -> setDirection( dir ) ;
+        
+        camera -> update( time ) ;
+
+        view_matrix = camera -> view_matrix ;
+    }
+
 protected:
     static sandbox *app ;
-
-    GLuint program ;
 
     GLFWwindow *window ;
 
     TextWriter *text_writer ;
-
     Menu *menu ;
 
     int width ;
     int height ;
 
+    double cursor_delta[2] ;
     double cursor_pos[2] ;
 
     bool show_framerate ;
     bool menu_active ;
     bool enable_wireframe ;
     bool v_sync ;
+
+    GLuint program ;
+
+    Camera *camera ;
+
+    glm::mat4 model_matrix ;
+    glm::mat4 view_matrix ;
+    glm::mat4 projection_matrix ;
+    glm::mat4 mvp_matrix ;
+
+    bool keys[1024] ;
 } ;
 
 #define MAIN(a,name)                    \
