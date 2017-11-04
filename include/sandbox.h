@@ -80,6 +80,7 @@ public:
 
         model_matrix      = glm::mat4(1.0) ;
         view_matrix       = camera -> view_matrix ;
+        skybox_matrix     = camera -> skybox_matrix ;
         projection_matrix = glm::mat4(1.0) ;
         mvp_matrix        = projection_matrix * view_matrix * model_matrix ;
 
@@ -329,6 +330,7 @@ public:
         camera -> update( time ) ;
 
         view_matrix = camera -> view_matrix ;
+        skybox_matrix = camera -> skybox_matrix ;
     }
 
 protected:
@@ -356,6 +358,7 @@ protected:
 
     glm::mat4 model_matrix ;
     glm::mat4 view_matrix ;
+    glm::mat4 skybox_matrix ;
     glm::mat4 projection_matrix ;
     glm::mat4 mvp_matrix ;
 

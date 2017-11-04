@@ -7,6 +7,7 @@ class Camera
 {
 public:
     glm::mat4 view_matrix ;
+    glm::mat4 skybox_matrix ;
 private:
     glm::vec3 position ;
 
@@ -29,6 +30,7 @@ public:
         up          = glm::vec3( 0.0f, 1.0f, 0.0f ) ;
         forward     = glm::vec3( 0.0f, 0.0f, -1.0f ) ;
         view_matrix = glm::lookAt( position, position + forward, up ) ;
+        skybox_matrix = glm::lookAt( glm::vec3(0.0), forward, up ) ;
         velocity    = 10.0f ;
         sensitivity = 0.1f ;
         direction   = glm::vec3( 0.0f, 0.0f, -1.0f ) ;
@@ -46,6 +48,7 @@ public:
         position += direction * velocity * delta ;
 
         view_matrix = glm::lookAt( position, position + forward, up ) ;
+        skybox_matrix = glm::lookAt( glm::vec3(0.0), forward, up ) ;
 
         last_time = time ;
 

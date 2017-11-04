@@ -44,6 +44,7 @@ ADD_LIBRARY( sandbox
 SET( EXAMPLES
      triangle
      cube
+     skybox
      perlin_noise )
 
 FOREACH( EXAMPLE ${EXAMPLES} )
