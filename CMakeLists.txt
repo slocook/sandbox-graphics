@@ -45,7 +45,8 @@ SET( EXAMPLES
      triangle
      cube
      skybox
-     perlin_noise )
+     perlin_noise
+     tessellation )
 
 FOREACH( EXAMPLE ${EXAMPLES} )
     SET( CURR_DIR src/${EXAMPLE} )
